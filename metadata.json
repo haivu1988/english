@@ -1,0 +1,7 @@
+{
+  "name": "Học Tiếng Anh Mỗi Ngày - Gemini Flashcards",
+  "description": "Ứng dụng học và ôn tập từ vựng tiếng Anh mỗi ngày qua Flashcards thông minh với sự hỗ trợ của Gemini AI, thiết kế tối ưu cho điện thoại.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
