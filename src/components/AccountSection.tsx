@@ -26,6 +26,9 @@ import {
   Layers,
   Smartphone,
   ExternalLink,
+  Copy,
+  HelpCircle,
+  Info,
 } from 'lucide-react';
 import {
   auth,
@@ -128,6 +131,9 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
+  const [domainCopied, setDomainCopied] = useState(false);
+  const [showFirebaseGuide, setShowFirebaseGuide] = useState(false);
+  const emailInputRef = useRef<HTMLInputElement>(null);
 
   // Profile Edit State
   const [isEditingName, setIsEditingName] = useState(false);
@@ -474,9 +480,107 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
 
           {/* Prominent Global Alert for Auth Status / Errors */}
           {authError && (
-            <div className="p-3.5 rounded-2xl bg-[#FBF2EE] border border-[#F2D7CD] text-[#C27D63] text-xs flex items-start space-x-2.5 animate-in fade-in">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span className="leading-relaxed">{authError}</span>
+            <div>
+              {authError.includes('chưa được cấp quyền') || authError.includes('unauthorized-domain') ? (
+                <div className="p-4 rounded-3xl bg-[#FFF8EE] border border-[#F5DCBE] space-y-3 animate-in fade-in shadow-xs">
+                  <div className="flex items-start space-x-2.5">
+                    <AlertCircle className="w-5 h-5 shrink-0 text-[#B87128] mt-0.5" />
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-bold text-[#8A4F13]">
+                        Google Login: Tên miền chưa được cấp phép trong Firebase
+                      </h4>
+                      <p className="text-[11px] text-[#7A4B1A] leading-relaxed">
+                        Chính sách bảo mật của Firebase chặn đăng nhập Google trên tên miền máy chủ Cloud Run này nếu chưa thêm vào whitelist.
+                      </p>
+                      <p className="text-[11px] font-bold text-[#4E6746] pt-0.5">
+                        👉 Giải pháp nhanh nhất: Đăng ký / Đăng nhập bằng Email bên dưới để học và lưu trữ từ vựng ngay tức thì (100% không lỗi).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('signup');
+                        setAuthError(null);
+                        emailInputRef.current?.focus();
+                      }}
+                      className="flex-1 py-2 px-3 rounded-xl bg-[#8FA189] hover:bg-[#7D9177] text-white text-xs font-bold flex items-center justify-center space-x-1.5 shadow-xs transition-all active:scale-[0.98]"
+                    >
+                      <Mail className="w-3.5 h-3.5" />
+                      <span>Đăng ký bằng Email ngay (Khuyên dùng)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowFirebaseGuide(!showFirebaseGuide)}
+                      className="py-2 px-3 rounded-xl bg-white border border-[#E0DBCF] hover:bg-[#FAF9F6] text-[#5C574F] text-xs font-semibold flex items-center justify-center space-x-1.5"
+                    >
+                      <HelpCircle className="w-3.5 h-3.5 text-[#8FA189]" />
+                      <span>{showFirebaseGuide ? 'Ẩn hướng dẫn' : 'Cách cấp quyền trong Firebase'}</span>
+                    </button>
+                  </div>
+
+                  {showFirebaseGuide && (
+                    <div className="p-3.5 rounded-2xl bg-white border border-[#EBE6DC] text-[11px] text-[#5C574F] space-y-2 mt-2 animate-in fade-in">
+                      <p className="font-bold text-[#3D3934]">
+                        Nếu bạn là chủ dự án Firebase và muốn kích hoạt Google Sign-In:
+                      </p>
+                      <ol className="list-decimal list-inside space-y-1.5 text-[#6E685E]">
+                        <li>
+                          Mở{' '}
+                          <a
+                            href="https://console.firebase.google.com"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[#8FA189] font-bold underline"
+                          >
+                            console.firebase.google.com
+                          </a>
+                        </li>
+                        <li>
+                          Chọn dự án: <strong className="text-[#3D3934]">gen-lang-client-0390084277</strong>
+                        </li>
+                        <li>
+                          Vào menu <strong>Authentication</strong> → Chọn thẻ <strong>Settings</strong> (Cài đặt)
+                        </li>
+                        <li>
+                          Cuộn xuống mục <strong>Authorized domains</strong> (Tên miền được ủy quyền)
+                        </li>
+                        <li>
+                          Nhấn <strong>Add domain</strong> và dán tên miền này:
+                        </li>
+                      </ol>
+
+                      <div className="flex items-center space-x-2 pt-1">
+                        <code className="flex-1 px-2.5 py-1.5 rounded-lg bg-[#FAF9F6] border border-[#E0DBCF] text-[10px] text-[#3D3934] font-mono select-all truncate">
+                          {typeof window !== 'undefined' ? window.location.hostname : 'run.app'}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (typeof window !== 'undefined') {
+                              navigator.clipboard.writeText(window.location.hostname);
+                              setDomainCopied(true);
+                              setTimeout(() => setDomainCopied(false), 2500);
+                            }
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg bg-[#8FA189] text-white text-[10px] font-bold shrink-0 flex items-center space-x-1 shadow-2xs"
+                        >
+                          {domainCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                          <span>{domainCopied ? 'Đã sao chép' : 'Sao chép'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-[#FBF2EE] border border-[#F2D7CD] text-[#C27D63] text-xs flex items-start space-x-2.5 animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{authError}</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -494,7 +598,7 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
               <div className="space-y-1">
                 <p className="font-bold">Đang mở trong trình duyệt ứng dụng (Zalo/Facebook)</p>
                 <p className="text-[11px] leading-relaxed">
-                  Google thường hạn chế mở cửa sổ đăng nhập trong app. Bạn hãy nhấn vào nút <strong>⋮</strong> ở góc màn hình và chọn <strong>"Mở bằng trình duyệt"</strong> (Safari/Chrome), hoặc dùng hình thức Đăng nhập Email bên dưới.
+                  Google hạn chế cửa sổ đăng nhập trong app. Bạn hãy dùng <strong>Đăng ký / Đăng nhập bằng Email</strong> bên dưới để vào học mượt mà nhất.
                 </p>
               </div>
             </div>
@@ -515,235 +619,251 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
             </div>
           )}
 
-          {/* Google Sign-In Actions */}
-          <div className="space-y-2">
-            {/* Primary Google Quick Sign-In (Popup) */}
-            <button
-              onClick={() => handleGoogleSignIn(false)}
-              disabled={authLoading}
-              className="w-full py-3 px-4 rounded-2xl bg-white border border-[#E0DBCF] hover:border-[#8FA189] hover:bg-[#FAF9F6] text-[#3D3934] text-xs font-bold flex items-center justify-center space-x-2.5 shadow-xs transition-all disabled:opacity-50 active:scale-[0.99]"
-            >
-              {authLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin text-[#8FA189]" />
-              ) : (
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                  />
-                </svg>
-              )}
-              <span>Đăng nhập nhanh với Google</span>
-            </button>
-
-            {/* Mobile-optimized redirect option */}
-            <button
-              onClick={() => handleGoogleSignIn(true)}
-              disabled={authLoading}
-              className="w-full py-2.5 px-3 rounded-2xl bg-[#FAF9F6] border border-[#D6E0D3] hover:bg-[#EAEFE8] hover:border-[#8FA189] text-[#4E6746] text-xs font-semibold flex items-center justify-center space-x-2 transition-all disabled:opacity-50 active:scale-[0.99]"
-              title="Dành cho điện thoại nếu bị chặn popup"
-            >
-              <Smartphone className="w-3.5 h-3.5 text-[#8FA189]" />
-              <span>Đăng nhập Google (Chuyển hướng trang - Dành cho điện thoại)</span>
-            </button>
-          </div>
-
-          {/* Divider */}
-          <div className="flex items-center space-x-3">
-            <div className="flex-1 h-px bg-[#E0DBCF]" />
-            <span className="text-[11px] font-medium text-[#8A8479]">hoặc sử dụng Email</span>
-            <div className="flex-1 h-px bg-[#E0DBCF]" />
-          </div>
-
-          {/* Tab Selection */}
-          <div className="p-1 rounded-2xl bg-[#EAE7DF] flex space-x-1">
-            <button
-              onClick={() => {
-                setAuthMode('signin');
-                setAuthError(null);
-                setAuthSuccess(null);
-              }}
-              className={`flex-1 py-2 text-xs font-serif font-bold rounded-xl transition-all ${
-                authMode === 'signin'
-                  ? 'bg-white text-[#3D3934] shadow-xs'
-                  : 'text-[#6B655B] hover:text-[#3D3934]'
-              }`}
-            >
-              Đăng nhập
-            </button>
-            <button
-              onClick={() => {
-                setAuthMode('signup');
-                setAuthError(null);
-                setAuthSuccess(null);
-              }}
-              className={`flex-1 py-2 text-xs font-serif font-bold rounded-xl transition-all ${
-                authMode === 'signup'
-                  ? 'bg-white text-[#3D3934] shadow-xs'
-                  : 'text-[#6B655B] hover:text-[#3D3934]'
-              }`}
-            >
-              Đăng ký mới
-            </button>
-          </div>
-
-          {/* Auth Form Card */}
-          <form
-            onSubmit={handleAuthSubmit}
-            className="p-5 rounded-3xl bg-white border border-[#E0DBCF] shadow-xs space-y-3.5"
-          >
-            {authMode === 'signup' && (
-              <div>
-                <label className="block text-[11px] font-bold text-[#5C574F] mb-1">
-                  Tên hiển thị của bạn
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Ví dụ: Hải Phương"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-[#E0DBCF] focus:border-[#8FA189] focus:ring-1 focus:ring-[#8FA189] text-xs bg-[#FAF9F6] outline-hidden text-[#3D3934]"
-                  />
-                  <UserIcon className="w-4 h-4 text-[#8A8479] absolute left-3 top-3" />
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-[11px] font-bold text-[#5C574F] mb-1">
-                Địa chỉ Email
-              </label>
-              <div className="relative">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-[#E0DBCF] focus:border-[#8FA189] focus:ring-1 focus:ring-[#8FA189] text-xs bg-[#FAF9F6] outline-hidden text-[#3D3934]"
-                />
-                <Mail className="w-4 h-4 text-[#8A8479] absolute left-3 top-3" />
-              </div>
+          {/* Primary Authentication Method: Email / Password (100% reliable on all devices) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#3D3934] flex items-center space-x-1.5">
+                <ShieldCheck className="w-4 h-4 text-[#8FA189]" />
+                <span>Đăng nhập / Đăng ký qua Email</span>
+              </span>
+              <span className="text-[10px] font-bold text-[#4E6746] bg-[#EAEFE8] px-2 py-0.5 rounded-full">
+                Khuyên dùng trên điện thoại
+              </span>
             </div>
 
-            {authMode !== 'forgot' && (
+            {/* Tab Selection */}
+            <div className="p-1 rounded-2xl bg-[#EAE7DF] flex space-x-1">
+              <button
+                onClick={() => {
+                  setAuthMode('signin');
+                  setAuthError(null);
+                  setAuthSuccess(null);
+                }}
+                className={`flex-1 py-2 text-xs font-serif font-bold rounded-xl transition-all ${
+                  authMode === 'signin'
+                    ? 'bg-white text-[#3D3934] shadow-xs'
+                    : 'text-[#6B655B] hover:text-[#3D3934]'
+                }`}
+              >
+                Đăng nhập
+              </button>
+              <button
+                onClick={() => {
+                  setAuthMode('signup');
+                  setAuthError(null);
+                  setAuthSuccess(null);
+                }}
+                className={`flex-1 py-2 text-xs font-serif font-bold rounded-xl transition-all ${
+                  authMode === 'signup'
+                    ? 'bg-white text-[#3D3934] shadow-xs'
+                    : 'text-[#6B655B] hover:text-[#3D3934]'
+                }`}
+              >
+                Đăng ký tài khoản mới
+              </button>
+            </div>
+
+            {/* Auth Form Card */}
+            <form
+              onSubmit={handleAuthSubmit}
+              className="p-5 rounded-3xl bg-white border border-[#E0DBCF] shadow-xs space-y-3.5"
+            >
+              {authMode === 'signup' && (
+                <div>
+                  <label className="block text-[11px] font-bold text-[#5C574F] mb-1">
+                    Tên hiển thị của bạn
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Ví dụ: Hải Phương"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-[#E0DBCF] focus:border-[#8FA189] focus:ring-1 focus:ring-[#8FA189] text-xs bg-[#FAF9F6] outline-hidden text-[#3D3934]"
+                    />
+                    <UserIcon className="w-4 h-4 text-[#8A8479] absolute left-3 top-3" />
+                  </div>
+                </div>
+              )}
+
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-[11px] font-bold text-[#5C574F]">
-                    Mật khẩu
+                  <label className="block text-[11px] font-bold text-[#5C574F]">
+                    Địa chỉ Email
                   </label>
-                  {authMode === 'signin' && (
+                  {!email && (
                     <button
                       type="button"
-                      onClick={() => setAuthMode('forgot')}
-                      className="text-[11px] font-semibold text-[#8FA189] hover:underline"
+                      onClick={() => setEmail('haiphuong19021806@gmail.com')}
+                      className="text-[10px] text-[#8FA189] hover:underline font-medium flex items-center space-x-1"
                     >
-                      Quên mật khẩu?
+                      <Sparkles className="w-3 h-3" />
+                      <span>Điền: haiphuong19021806@gmail.com</span>
                     </button>
                   )}
                 </div>
                 <div className="relative">
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    ref={emailInputRef}
+                    type="email"
                     required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Ít nhất 6 ký tự"
-                    className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-[#E0DBCF] focus:border-[#8FA189] focus:ring-1 focus:ring-[#8FA189] text-xs bg-[#FAF9F6] outline-hidden text-[#3D3934]"
-                  />
-                  <Lock className="w-4 h-4 text-[#8A8479] absolute left-3 top-3" />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-2.5 text-[#8A8479] hover:text-[#3D3934]"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {authMode === 'signup' && (
-              <div>
-                <label className="block text-[11px] font-bold text-[#5C574F] mb-1">
-                  Xác nhận lại mật khẩu
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Nhập lại mật khẩu"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@example.com"
                     className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-[#E0DBCF] focus:border-[#8FA189] focus:ring-1 focus:ring-[#8FA189] text-xs bg-[#FAF9F6] outline-hidden text-[#3D3934]"
                   />
-                  <Lock className="w-4 h-4 text-[#8A8479] absolute left-3 top-3" />
+                  <Mail className="w-4 h-4 text-[#8A8479] absolute left-3 top-3" />
                 </div>
               </div>
-            )}
 
-            {/* Error & Success Messages */}
-            {authError && (
-              <div className="p-3 rounded-xl bg-[#FBF2EE] border border-[#F2D7CD] text-[#C27D63] text-xs flex items-center space-x-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{authError}</span>
-              </div>
-            )}
-
-            {authSuccess && (
-              <div className="p-3 rounded-xl bg-[#EAEFE8] border border-[#D6E0D3] text-[#4E6746] text-xs flex items-center space-x-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>{authSuccess}</span>
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={authLoading}
-              className="w-full py-3 px-4 rounded-xl bg-[#8FA189] hover:bg-[#7D8F77] disabled:opacity-60 text-white font-bold text-xs flex items-center justify-center space-x-2 shadow-md shadow-[#8FA189]/20 transition-all active:scale-[0.99]"
-            >
-              {authLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Đang xử lý...</span>
-                </>
-              ) : authMode === 'signin' ? (
-                <span>Đăng nhập ngay</span>
-              ) : authMode === 'signup' ? (
-                <span>Tạo tài khoản học</span>
-              ) : (
-                <span>Gửi email đặt lại mật khẩu</span>
+              {authMode !== 'forgot' && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold text-[#5C574F]">
+                      Mật khẩu
+                    </label>
+                    {authMode === 'signin' && (
+                      <button
+                        type="button"
+                        onClick={() => setAuthMode('forgot')}
+                        className="text-[11px] font-semibold text-[#8FA189] hover:underline"
+                      >
+                        Quên mật khẩu?
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Ít nhất 6 ký tự"
+                      className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-[#E0DBCF] focus:border-[#8FA189] focus:ring-1 focus:ring-[#8FA189] text-xs bg-[#FAF9F6] outline-hidden text-[#3D3934]"
+                    />
+                    <Lock className="w-4 h-4 text-[#8A8479] absolute left-3 top-3" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-2.5 text-[#8A8479] hover:text-[#3D3934]"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
               )}
-            </button>
 
-            {authMode === 'forgot' && (
+              {authMode === 'signup' && (
+                <div>
+                  <label className="block text-[11px] font-bold text-[#5C574F] mb-1">
+                    Xác nhận lại mật khẩu
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Nhập lại mật khẩu"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-[#E0DBCF] focus:border-[#8FA189] focus:ring-1 focus:ring-[#8FA189] text-xs bg-[#FAF9F6] outline-hidden text-[#3D3934]"
+                    />
+                    <Lock className="w-4 h-4 text-[#8A8479] absolute left-3 top-3" />
+                  </div>
+                </div>
+              )}
+
+              {/* Submit Button */}
               <button
-                type="button"
-                onClick={() => setAuthMode('signin')}
-                className="w-full text-center text-xs text-[#8A8479] hover:text-[#3D3934] pt-1"
+                type="submit"
+                disabled={authLoading}
+                className="w-full py-3 px-4 rounded-xl bg-[#8FA189] hover:bg-[#7D8F77] disabled:opacity-60 text-white font-bold text-xs flex items-center justify-center space-x-2 shadow-md shadow-[#8FA189]/20 transition-all active:scale-[0.99]"
               >
-                ← Quay lại Đăng nhập
+                {authLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Đang xử lý...</span>
+                  </>
+                ) : authMode === 'signin' ? (
+                  <span>Đăng nhập ngay</span>
+                ) : authMode === 'signup' ? (
+                  <span>Tạo tài khoản học tập</span>
+                ) : (
+                  <span>Gửi email đặt lại mật khẩu</span>
+                )}
               </button>
-            )}
-          </form>
+
+              {authMode === 'signup' && (
+                <p className="text-[10px] text-[#8A8479] text-center">
+                  💡 Bạn chỉ cần nhập email và mật khẩu từ 6 ký tự để bắt đầu lưu từ vựng ngay.
+                </p>
+              )}
+
+              {authMode === 'forgot' && (
+                <button
+                  type="button"
+                  onClick={() => setAuthMode('signin')}
+                  className="w-full text-center text-xs text-[#8A8479] hover:text-[#3D3934] pt-1"
+                >
+                  ← Quay lại Đăng nhập
+                </button>
+              )}
+            </form>
+          </div>
+
+          {/* Secondary Option: Google Sign-In */}
+          <div className="pt-2 space-y-2.5">
+            <div className="flex items-center space-x-3">
+              <div className="flex-1 h-px bg-[#E0DBCF]" />
+              <span className="text-[11px] font-medium text-[#8A8479]">hoặc đăng nhập với Google</span>
+              <div className="flex-1 h-px bg-[#E0DBCF]" />
+            </div>
+
+            <div className="space-y-2">
+              <button
+                onClick={() => handleGoogleSignIn(false)}
+                disabled={authLoading}
+                className="w-full py-3 px-4 rounded-2xl bg-white border border-[#E0DBCF] hover:border-[#8FA189] hover:bg-[#FAF9F6] text-[#3D3934] text-xs font-bold flex items-center justify-center space-x-2.5 shadow-xs transition-all disabled:opacity-50 active:scale-[0.99]"
+              >
+                {authLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-[#8FA189]" />
+                ) : (
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                    />
+                  </svg>
+                )}
+                <span>Đăng nhập nhanh với Google</span>
+              </button>
+
+              <button
+                onClick={() => handleGoogleSignIn(true)}
+                disabled={authLoading}
+                className="w-full py-2 px-3 rounded-2xl bg-[#FAF9F6] border border-[#D6E0D3] hover:bg-[#EAEFE8] hover:border-[#8FA189] text-[#4E6746] text-[11px] font-medium flex items-center justify-center space-x-1.5 transition-all disabled:opacity-50 active:scale-[0.99]"
+                title="Dành cho điện thoại nếu bị chặn popup"
+              >
+                <Smartphone className="w-3 h-3 text-[#8FA189]" />
+                <span>Đăng nhập Google (Chuyển hướng trang - Dành cho điện thoại)</span>
+              </button>
+            </div>
+          </div>
 
           {/* Local Guest Notice */}
           <div className="p-3.5 rounded-2xl bg-[#EAEFE8]/60 border border-[#D6E0D3] text-[11px] text-[#5C574F] flex items-start space-x-2.5">

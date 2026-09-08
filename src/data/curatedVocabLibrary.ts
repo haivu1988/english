@@ -359,23 +359,241 @@ export const CURATED_VOCABULARY: CuratedCardItem[] = [
     level: 'B1-B2',
     category: 'tech',
   },
+
+  // Additional A1-A2 Daily & Life
+  {
+    word: 'grocery',
+    phonetic: '/ˈɡroʊ.sər.i/',
+    partOfSpeech: 'noun',
+    vietnameseMeaning: 'Hàng tạp hóa, thực phẩm thiết yếu hàng ngày',
+    exampleSentence: 'I go to the local market every Sunday to buy fresh groceries.',
+    exampleTranslation: 'Tôi đi chợ địa phương vào mỗi Chủ Nhật để mua thực phẩm tươi sống.',
+    memoryTip: 'Gợi nhớ từ "grow" (trồng trọt): rau củ trồng xong đem bán ở tiệm tạp hóa.',
+    collocations: ['buy groceries', 'grocery shopping', 'grocery store'],
+    level: 'A1-A2',
+    category: 'daily',
+  },
+  {
+    word: 'commute',
+    phonetic: '/kəˈmjuːt/',
+    partOfSpeech: 'verb',
+    vietnameseMeaning: 'Đi làm, di chuyển thường nhật giữa nhà và nơi làm việc',
+    exampleSentence: 'It takes me about 30 minutes to commute to work by bus.',
+    exampleTranslation: 'Tôi mất khoảng 30 phút để đi làm bằng xe buýt.',
+    memoryTip: 'Âm giống "cơm-mút": sáng dậy ăn vội bát cơm rồi đi làm.',
+    collocations: ['daily commute', 'commute by bus', 'long commute'],
+    level: 'A1-A2',
+    category: 'daily',
+  },
+  {
+    word: 'errand',
+    phonetic: '/ˈer.ənd/',
+    partOfSpeech: 'noun',
+    vietnameseMeaning: 'Việc vặt cá nhân cần ra ngoài xử lý',
+    exampleSentence: 'I have to run a few errands this morning before noon.',
+    exampleTranslation: 'Sáng nay tôi phải ra ngoài giải quyết vài việc vặt trước buổi trưa.',
+    memoryTip: 'Liên tưởng "e-rảnh": khi rảnh rỗi mới đi làm việc vặt.',
+    collocations: ['run an errand', 'do errands', 'personal errands'],
+    level: 'A1-A2',
+    category: 'daily',
+  },
+  {
+    word: 'household',
+    phonetic: '/ˈhaʊs.hoʊld/',
+    partOfSpeech: 'noun',
+    vietnameseMeaning: 'Hộ gia đình, các công việc trong nhà',
+    exampleSentence: 'My sister and I always share the household chores equally.',
+    exampleTranslation: 'Chị gái và tôi luôn chia đều các công việc nhà với nhau.',
+    memoryTip: 'House (nhà) + Hold (giữ gìn): cùng chung tay giữ gìn tổ ấm.',
+    collocations: ['household chores', 'household items', 'household income'],
+    level: 'A1-A2',
+    category: 'daily',
+  },
+  {
+    word: 'catch up',
+    phonetic: '/kætʃ ʌp/',
+    partOfSpeech: 'phrasal verb',
+    vietnameseMeaning: 'Hàn huyên, cập nhật tình hình sau thời gian dài không gặp',
+    exampleSentence: 'We should definitely catch up over a cup of hot coffee soon.',
+    exampleTranslation: 'Chúng mình chắc chắn nên đi uống cà phê hàn huyên sớm nhé.',
+    memoryTip: 'Catch (bắt lấy) tin tức mới của nhau sau những ngày bận rộn.',
+    collocations: ['catch up with friends', 'catch up on news', 'time to catch up'],
+    level: 'A1-A2',
+    category: 'daily',
+  },
+  {
+    word: 'punctual',
+    phonetic: '/ˈpʌŋk.tʃu.əl/',
+    partOfSpeech: 'adjective',
+    vietnameseMeaning: 'Đúng giờ, luôn chuẩn xác giờ giấc',
+    exampleSentence: 'Please be punctual for tomorrow morning\'s job interview.',
+    exampleTranslation: 'Xin vui lòng đến đúng giờ cho buổi phỏng vấn xin việc sáng mai.',
+    memoryTip: 'Point (điểm giờ): người punctual luôn đến trúng điểm giờ đã hẹn.',
+    collocations: ['be punctual', 'punctual arrival', 'strictly punctual'],
+    level: 'A1-A2',
+    category: 'daily',
+  },
+  {
+    word: 'budget',
+    phonetic: '/ˈbʌdʒ.ɪt/',
+    partOfSpeech: 'noun',
+    vietnameseMeaning: 'Ngân sách, khoản tiền dự trù chi tiêu',
+    exampleSentence: 'We need to plan our travel budget carefully for this trip.',
+    exampleTranslation: 'Chúng ta cần lên kế hoạch ngân sách chi tiêu cẩn thận cho chuyến đi này.',
+    memoryTip: 'Chi tiêu trong túi (bag) tiền định sẵn, không tiêu hoang.',
+    collocations: ['on a tight budget', 'travel budget', 'monthly budget'],
+    level: 'A1-A2',
+    category: 'daily',
+  },
+  {
+    word: 'itinerary',
+    phonetic: '/aɪˈtɪn.ər.ər.i/',
+    partOfSpeech: 'noun',
+    vietnameseMeaning: 'Lịch trình chi tiết cho chuyến đi',
+    exampleSentence: 'The tour guide gave us a detailed itinerary for our 3-day visit.',
+    exampleTranslation: 'Hướng dẫn viên đã phát cho chúng tôi lịch trình chi tiết cho chuyến tham quan 3 ngày.',
+    memoryTip: 'Lịch trình từng bước đi trong chuyến hành trình du lịch.',
+    collocations: ['travel itinerary', 'planned itinerary', 'follow the itinerary'],
+    level: 'A1-A2',
+    category: 'travel',
+  },
+  {
+    word: 'reservation',
+    phonetic: '/ˌrez.əˈveɪ.ʃən/',
+    partOfSpeech: 'noun',
+    vietnameseMeaning: 'Sự đặt chỗ trước (nhà hàng, khách sạn, chuyến bay)',
+    exampleSentence: 'I made a reservation for two people at the seaside restaurant.',
+    exampleTranslation: 'Tôi đã đặt bàn trước cho hai người tại nhà hàng ven biển.',
+    memoryTip: 'Reserve (giữ chỗ) trước để khi đến nơi chắc chắn có bàn ngon.',
+    collocations: ['make a reservation', 'cancel a reservation', 'hotel reservation'],
+    level: 'A1-A2',
+    category: 'cafe',
+  },
+  {
+    word: 'complimentary',
+    phonetic: '/ˌkɒm.plɪˈmen.tər.i/',
+    partOfSpeech: 'adjective',
+    vietnameseMeaning: 'Miễn phí, dịch vụ tặng kèm theo',
+    exampleSentence: 'The hotel provides complimentary breakfast and Wi-Fi for all guests.',
+    exampleTranslation: 'Khách sạn cung cấp bữa sáng và Wi-Fi miễn phí cho tất cả khách trọ.',
+    memoryTip: 'Được tặng kèm như một lời khen (compliment) tri ân khách hàng.',
+    collocations: ['complimentary breakfast', 'complimentary drink', 'complimentary ticket'],
+    level: 'A1-A2',
+    category: 'travel',
+  },
+  {
+    word: 'colleague',
+    phonetic: '/ˈkɒl.iːɡ/',
+    partOfSpeech: 'noun',
+    vietnameseMeaning: 'Đồng nghiệp cùng cơ quan, đồng sự',
+    exampleSentence: 'My colleagues in the marketing team are very supportive.',
+    exampleTranslation: 'Các đồng nghiệp ở đội ngũ marketing của tôi rất nhiệt tình giúp đỡ.',
+    memoryTip: 'Người cùng làm việc trong cùng một liên minh văn phòng.',
+    collocations: ['close colleague', 'work colleague', 'former colleague'],
+    level: 'A1-A2',
+    category: 'work',
+  },
+  {
+    word: 'deadline',
+    phonetic: '/ˈded.laɪn/',
+    partOfSpeech: 'noun',
+    vietnameseMeaning: 'Hạn chót phải hoàn thành công việc',
+    exampleSentence: 'We must submit this project proposal before the Friday deadline.',
+    exampleTranslation: 'Chúng tôi phải nộp đề xuất dự án này trước hạn chót thứ Sáu.',
+    memoryTip: 'Đường ranh giới cuối cùng (line), vượt qua là bị phạt!',
+    collocations: ['meet a deadline', 'tight deadline', 'miss the deadline'],
+    level: 'A1-A2',
+    category: 'work',
+  },
+  // Additional B1-B2 & C1
+  {
+    word: 'collaborate',
+    phonetic: '/kəˈlæb.ə.reɪt/',
+    partOfSpeech: 'verb',
+    vietnameseMeaning: 'Hợp tác, cùng làm việc để đạt mục tiêu chung',
+    exampleSentence: 'Both teams need to collaborate closely to finish the app on time.',
+    exampleTranslation: 'Cả hai nhóm cần hợp tác chặt chẽ để hoàn thành ứng dụng đúng hạn.',
+    memoryTip: 'Co (cùng nhau) + Labor (lao động) = Cùng chung sức làm việc.',
+    collocations: ['collaborate closely', 'collaborate with partners', 'collaborative effort'],
+    level: 'B1-B2',
+    category: 'work',
+  },
+  {
+    word: 'versatile',
+    phonetic: '/ˈvɜː.sə.taɪl/',
+    partOfSpeech: 'adjective',
+    vietnameseMeaning: 'Đa năng, linh hoạt, nhiều công dụng',
+    exampleSentence: 'She is a versatile designer who can write code and craft UI graphics.',
+    exampleTranslation: 'Cô ấy là một nhà thiết kế đa năng, vừa biết viết mã vừa thiết kế giao diện.',
+    memoryTip: 'Từ tiếng Latin "vertere" (xoay sở mọi hướng): người xoay đâu cũng làm được.',
+    collocations: ['versatile tool', 'versatile talent', 'highly versatile'],
+    level: 'B1-B2',
+    category: 'work',
+  },
+  {
+    word: 'indispensable',
+    phonetic: '/ˌɪn.dɪˈspen.sə.bəl/',
+    partOfSpeech: 'adjective',
+    vietnameseMeaning: 'Không thể thiếu được, thiết yếu tuyệt đối',
+    exampleSentence: 'Smartphones have become indispensable in our daily communication.',
+    exampleTranslation: 'Điện thoại thông minh đã trở thành thứ không thể thiếu trong liên lạc hàng ngày.',
+    memoryTip: 'In (không) + dispense (bỏ qua được): thứ cốt lõi không thể vứt bỏ.',
+    collocations: ['indispensable tool', 'indispensable role', 'play an indispensable part'],
+    level: 'B1-B2',
+    category: 'daily',
+  },
+  {
+    word: 'resilience',
+    phonetic: '/rɪˈzɪl.jəns/',
+    partOfSpeech: 'noun',
+    vietnameseMeaning: 'Khả năng phục hồi, kiên cường vượt qua nghịch cảnh',
+    exampleSentence: 'The team showed remarkable resilience during the economic downturn.',
+    exampleTranslation: 'Toàn đội đã thể hiện sự kiên cường đáng nể trong thời kỳ kinh tế suy thoái.',
+    memoryTip: 'Hình ảnh cành tre uốn cong theo bão rồi bật thẳng trở lại.',
+    collocations: ['mental resilience', 'build resilience', 'show great resilience'],
+    level: 'C1-C2',
+    category: 'work',
+  },
+  {
+    word: 'articulate',
+    phonetic: '/ɑːˈtɪk.jə.lət/',
+    partOfSpeech: 'adjective',
+    vietnameseMeaning: 'Ăn nói lưu loát, diễn đạt mạch lạc rõ ràng',
+    exampleSentence: 'He is an articulate speaker who can explain complex ideas simply.',
+    exampleTranslation: 'Anh ấy là một diễn giả ăn nói rất lưu loát, giải thích điều phức tạp một cách dễ hiểu.',
+    memoryTip: 'Khớp nối từng từ rành rọt như khớp xương (articulation).',
+    collocations: ['articulate speaker', 'highly articulate', 'articulate thoughts clearly'],
+    level: 'C1-C2',
+    category: 'work',
+  },
 ];
 
 /**
  * Filter curated cards when Gemini is unavailable or rate-limited
+ * 100% resilient - guaranteed to never throw or return empty.
  */
 export function getCuratedFallbackCards(
-  level: string,
-  categoryOrTopic: string,
-  count: number,
-  existingWords: string[] = []
+  level?: string,
+  categoryOrTopic?: string,
+  count?: number,
+  existingWords?: string[]
 ): { topicTitle: string; level: string; cards: Omit<CuratedCardItem, 'category'>[] } {
-  const existingSet = new Set(existingWords.map((w) => w.toLowerCase().trim()));
+  // Defensive sanitization of all arguments
+  const safeCount = Math.max(1, Math.min(20, Number(count) || 6));
+  const safeLevel = (typeof level === 'string' && level.trim()) ? level.trim() : 'B1-B2';
+  const normalizedLevel = safeLevel.toUpperCase();
 
-  // Normalize level
-  const normalizedLevel = level.toUpperCase();
+  // Safely extract existing words without any risk of TypeError
+  const existingSet = new Set<string>();
+  if (Array.isArray(existingWords)) {
+    for (const w of existingWords) {
+      if (typeof w === 'string' && w.trim()) {
+        existingSet.add(w.trim().toLowerCase());
+      }
+    }
+  }
 
-  // Try matching level
+  // 1. Try matching preferred level first
   let pool = CURATED_VOCABULARY.filter((card) => {
     if (existingSet.has(card.word.toLowerCase())) return false;
     if (normalizedLevel.includes('A1') || normalizedLevel.includes('A2')) {
@@ -397,21 +615,45 @@ export function getCuratedFallbackCards(
     return card.level === 'B1-B2' || card.level === 'A1-A2';
   });
 
-  // If pool is too small, relax filter
-  if (pool.length < count) {
-    pool = CURATED_VOCABULARY.filter((card) => !existingSet.has(card.word.toLowerCase()));
+  // 2. If pool is too small, add other unused cards regardless of level
+  if (pool.length < safeCount) {
+    const remainingUnused = CURATED_VOCABULARY.filter(
+      (card) =>
+        !existingSet.has(card.word.toLowerCase()) &&
+        !pool.some((p) => p.word.toLowerCase() === card.word.toLowerCase())
+    );
+    pool = [...pool, ...remainingUnused];
   }
 
-  // Shuffle pool
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
-  const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+  // 3. If STILL less than safeCount (user learned almost entire library), recycle from full vocabulary
+  if (pool.length < safeCount) {
+    const fullPool = [...CURATED_VOCABULARY].filter(
+      (card) => !pool.some((p) => p.word.toLowerCase() === card.word.toLowerCase())
+    );
+    pool = [...pool, ...fullPool];
+  }
 
-  // Determine title
-  const topicTitle = `Bộ từ vựng chất lượng (${level || 'B1-B2'})`;
+  // Absolute guarantee: pool is never empty
+  if (pool.length === 0) {
+    pool = [...CURATED_VOCABULARY];
+  }
+
+  // Shuffle pool with Fisher-Yates
+  const shuffled = [...pool];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  const selected = shuffled.slice(0, Math.min(safeCount, shuffled.length));
+
+  const topicTitle = categoryOrTopic
+    ? `${categoryOrTopic} (${safeLevel})`
+    : `Từ vựng cốt lõi (${safeLevel})`;
 
   return {
     topicTitle,
-    level,
+    level: safeLevel,
     cards: selected.map(({ category, ...rest }) => rest),
   };
 }

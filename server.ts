@@ -33,9 +33,9 @@ function getGenAI(): GoogleGenAI {
 
 /**
  * Resilient multi-model executor:
- * 1. Tries primary model 'gemini-3.8-flash'
- * 2. If 503 (high demand / UNAVAILABLE) or 429, delays and retries
- * 3. Falls back to 'gemini-3.1-flash-lite' and then 'gemini-flash-latest'
+ * 1. Tries ultra-fast 'gemini-3.1-flash-lite' (low latency, structured JSON)
+ * 2. If timeout (>10s) or error, falls back to 'gemini-3.8-flash'
+ * 3. Never hangs or causes gateway timeouts
  */
 async function generateWithFallback(
   ai: GoogleGenAI,
@@ -46,54 +46,38 @@ async function generateWithFallback(
 ) {
   const candidateModels = [
     "gemini-3.1-flash-lite",
-    "gemini-flash-latest",
     "gemini-3.8-flash",
   ];
 
   let lastError: any = null;
 
   for (const model of candidateModels) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const response = await ai.models.generateContent({
-          model,
-          contents: options.contents,
-          config: options.config,
-        });
+    try {
+      // 10s per-model timeout to avoid mobile connection drops
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`Model ${model} timeout after 10s`)), 10000)
+      );
 
-        if (response && response.text) {
-          return response;
-        }
-      } catch (err: any) {
-        lastError = err;
-        const errStr = String(err?.message || err);
-        const isSpikeOrUnavailable =
-          errStr.includes("503") ||
-          errStr.includes("UNAVAILABLE") ||
-          errStr.includes("high demand") ||
-          errStr.includes("429") ||
-          errStr.includes("RESOURCE_EXHAUSTED") ||
-          errStr.includes("overloaded") ||
-          errStr.includes("temporarily unavailable") ||
-          errStr.includes("FetchError") ||
-          errStr.includes("ENOTFOUND");
+      const generatePromise = ai.models.generateContent({
+        model,
+        contents: options.contents,
+        config: options.config,
+      });
 
-        if (isSpikeOrUnavailable) {
-          if (attempt === 0) {
-            // Brief backoff before re-attempting or cascading
-            await new Promise((resolve) => setTimeout(resolve, 800));
-            continue;
-          }
-          // After retry, seamlessly cascade to next model candidate
-          break;
-        } else {
-          break;
-        }
+      const response = (await Promise.race([generatePromise, timeoutPromise])) as any;
+
+      if (response && response.text) {
+        return response;
       }
+    } catch (err: any) {
+      lastError = err;
+      console.warn(`[Gemini] Model ${model} encountered issue:`, err?.message || err);
+      // Immediately cascade to next model or fallback without stalling
+      continue;
     }
   }
 
-  throw lastError;
+  throw lastError || new Error("Gemini generation unavailable");
 }
 
 // Health check
@@ -108,7 +92,13 @@ app.post("/api/generate-cards", async (req, res) => {
     level = "B1-B2",
     count = 6,
     existingWords = [],
-  } = req.body;
+  } = req.body || {};
+
+  const safeLevel = typeof level === "string" && level.trim() ? level.trim() : "B1-B2";
+  const safeTopic = typeof topic === "string" && topic.trim() ? topic.trim() : "Giao tiếp hàng ngày";
+  const safeCount = Math.max(1, Math.min(20, Number(count) || 6));
+  const safeExistingWords = (Array.isArray(existingWords) ? existingWords : [])
+    .filter((w): w is string => typeof w === "string" && Boolean(w.trim()));
 
   try {
     const ai = getGenAI();
@@ -122,18 +112,18 @@ app.post("/api/generate-cards", async (req, res) => {
       "Business": "Tiếng Anh Thương mại & Doanh nghiệp (Thuyết trình, đàm phán, phỏng vấn, trao đổi đối tác và quản lý chuyên nghiệp)",
     };
 
-    const levelGuidance = levelDescriptions[level] || `Trình độ: ${level}`;
+    const levelGuidance = levelDescriptions[safeLevel] || `Trình độ: ${safeLevel}`;
 
     const prompt = `Bạn là một giáo viên dạy tiếng Anh bản xứ xuất sắc và thân thiện dành riêng cho người Việt Nam.
-Hãy tạo đúng ${count} thẻ từ vựng/cụm từ (Flashcards) tiếng Anh chất lượng cao cho người học.
-Chủ đề: "${topic}"
-Trình độ mục tiêu: ${level} - ${levelGuidance}
+Hãy tạo đúng ${safeCount} thẻ từ vựng/cụm từ (Flashcards) tiếng Anh chất lượng cao cho người học.
+Chủ đề: "${safeTopic}"
+Trình độ mục tiêu: ${safeLevel} - ${levelGuidance}
 Yêu cầu:
-1. Từ vựng thực tế, hữu dụng, đúng với độ khó và ngữ cảnh của trình độ ${level}.
-2. Tránh các từ này vì người học đã biết hoặc đã học: ${JSON.stringify(existingWords.slice(-30))}.
+1. Từ vựng thực tế, hữu dụng, đúng với độ khó và ngữ cảnh của trình độ ${safeLevel}.
+2. Tránh các từ này vì người học đã biết hoặc đã học: ${JSON.stringify(safeExistingWords.slice(-30))}.
 3. Phiên âm chuẩn IPA (ví dụ: /kəˌmjuː.nɪˈkeɪ.ʃən/).
 4. Nghĩa tiếng Việt ngắn gọn, súc tích, dễ hiểu.
-5. Câu ví dụ tiếng Anh thực tế, sát với chủ đề "${topic}", kèm bản dịch tiếng Việt mượt mà.
+5. Câu ví dụ tiếng Anh thực tế, sát với chủ đề "${safeTopic}", kèm bản dịch tiếng Việt mượt mà.
 6. Mẹo ghi nhớ (memoryTip): Mẹo vui, liên tưởng âm thanh hoặc hình ảnh bằng tiếng Việt giúp người học nhớ siêu lâu.
 7. Cụm từ hay đi kèm (collocations): 2-3 cụm từ phổ biến.`;
 
@@ -211,7 +201,7 @@ Yêu cầu:
       },
     });
 
-    const text = response.text;
+    const text = response?.text;
     if (!text) {
       throw new Error("Không nhận được phản hồi văn bản từ Gemini");
     }
@@ -219,27 +209,22 @@ Yêu cầu:
     const data = JSON.parse(text);
     return res.json(data);
   } catch (err: unknown) {
-    // If Gemini is overloaded or experiencing 503 demand spikes,
-    // seamlessly provide curated high-quality flashcards so user never experiences app crash
-    try {
-      const fallbackResult = getCuratedFallbackCards(
-        level,
-        topic,
-        Number(count) || 6,
-        existingWords
-      );
-      return res.json({
-        ...fallbackResult,
-        topicTitle: `${fallbackResult.topicTitle} (Chế độ dự phòng thông minh)`,
-        isCuratedFallback: true,
-      });
-    } catch {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : "Hệ thống AI đang quá tải trong giây lát, vui lòng thử lại sau ít phút.";
-      return res.status(500).json({ error: errorMessage });
-    }
+    console.warn(
+      "[Gemini API] Switching to curated fallback:",
+      err instanceof Error ? err.message : err
+    );
+    // Seamlessly provide curated high-quality flashcards so user never experiences app crash
+    const fallbackResult = getCuratedFallbackCards(
+      safeLevel,
+      safeTopic,
+      safeCount,
+      safeExistingWords
+    );
+    return res.json({
+      ...fallbackResult,
+      topicTitle: `${fallbackResult.topicTitle} (Kho từ vựng chuẩn)`,
+      isCuratedFallback: true,
+    });
   }
 });
 

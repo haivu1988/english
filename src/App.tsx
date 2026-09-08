@@ -10,6 +10,7 @@ import { WordDeepDiveModal } from './components/WordDeepDiveModal';
 import { CloudAccountModal } from './components/CloudAccountModal';
 import { OnboardingModal, TOPIC_OPTIONS } from './components/OnboardingModal';
 import { AccountSection } from './components/AccountSection';
+import { getCuratedFallbackCards } from './data/curatedVocabLibrary';
 import { Deck, Flashcard, MasteryLevel, UserProgress, UserPreferences } from './types';
 import {
   loadSavedCards,
@@ -248,63 +249,84 @@ export default function App() {
         const topicMeta = TOPIC_OPTIONS.find((t) => t.id === primaryTopicId);
         const topicQuery = topicMeta ? topicMeta.query : 'Giao tiếp hằng ngày';
 
-        const response = await fetch('/api/generate-cards', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            topic: topicQuery,
-            level: newPrefs.level,
-            count: newPrefs.dailyGoal || 6,
-            existingWords: cards.map((c) => c.word),
-          }),
-        });
+        let data: { topicTitle?: string; cards?: Partial<Flashcard>[] } | null = null;
 
-        if (response.ok) {
-          const data = await response.json();
-          const todayStr = new Date().toISOString().split('T')[0];
-          const deckId = `deck-${Date.now()}`;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-          const newDeck: Deck = {
-            id: deckId,
-            title: data.topicTitle || `${topicMeta?.label || 'Từ vựng'} (${newPrefs.level})`,
-            topic: topicQuery,
-            level: newPrefs.level,
-            createdAt: new Date().toISOString(),
-            cardCount: data.cards?.length || 0,
-            isDaily: true,
-            dateStr: todayStr,
-          };
+          const response = await fetch('/api/generate-cards', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              topic: topicQuery,
+              level: newPrefs.level,
+              count: newPrefs.dailyGoal || 6,
+              existingWords: cards.map((c) => c.word),
+            }),
+          });
+          clearTimeout(timeoutId);
 
-          const newCards: Flashcard[] = (data.cards || []).map(
-            (c: Partial<Flashcard>, index: number) => ({
-              id: `card-${deckId}-${index}`,
-              word: c.word || '',
-              phonetic: c.phonetic || '',
-              partOfSpeech: c.partOfSpeech || 'word',
-              vietnameseMeaning: c.vietnameseMeaning || '',
-              exampleSentence: c.exampleSentence || '',
-              exampleTranslation: c.exampleTranslation || '',
-              memoryTip: c.memoryTip || '',
-              collocations: c.collocations || [],
-              deckId,
-              dateAdded: todayStr,
-              reviewCount: 0,
-              masteryLevel: 'new' as const,
-            })
-          );
-
-          setDecks((prev) => [newDeck, ...prev]);
-          setCards((prev) => [...newCards, ...prev]);
-          setActiveDeckId(deckId);
-          setActiveTab('learn');
-
-          if (user) {
-            await saveUserDeckToCloud(user.uid, newDeck);
-            await saveAllCardsToCloud(user.uid, [...cards, ...newCards]);
+          if (response.ok) {
+            data = await response.json();
           }
+        } catch (apiErr) {
+          console.warn('API call failed during starter deck, using curated library:', apiErr);
+        }
+
+        if (!data || !data.cards || data.cards.length === 0) {
+          data = getCuratedFallbackCards(
+            newPrefs.level,
+            topicQuery,
+            newPrefs.dailyGoal || 6,
+            cards.map((c) => c.word)
+          );
+        }
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const deckId = `deck-${Date.now()}`;
+
+        const newDeck: Deck = {
+          id: deckId,
+          title: data.topicTitle || `${topicMeta?.label || 'Từ vựng'} (${newPrefs.level})`,
+          topic: topicQuery,
+          level: newPrefs.level,
+          createdAt: new Date().toISOString(),
+          cardCount: data.cards?.length || 0,
+          isDaily: true,
+          dateStr: todayStr,
+        };
+
+        const newCards: Flashcard[] = (data.cards || []).map(
+          (c: Partial<Flashcard>, index: number) => ({
+            id: `card-${deckId}-${index}`,
+            word: c.word || '',
+            phonetic: c.phonetic || '',
+            partOfSpeech: c.partOfSpeech || 'word',
+            vietnameseMeaning: c.vietnameseMeaning || '',
+            exampleSentence: c.exampleSentence || '',
+            exampleTranslation: c.exampleTranslation || '',
+            memoryTip: c.memoryTip || '',
+            collocations: c.collocations || [],
+            deckId,
+            dateAdded: todayStr,
+            reviewCount: 0,
+            masteryLevel: 'new' as const,
+          })
+        );
+
+        setDecks((prev) => [newDeck, ...prev]);
+        setCards((prev) => [...newCards, ...prev]);
+        setActiveDeckId(deckId);
+        setActiveTab('learn');
+
+        if (user) {
+          await saveUserDeckToCloud(user.uid, newDeck);
+          await saveAllCardsToCloud(user.uid, [...cards, ...newCards]);
         }
       } catch (err) {
-        console.error('Failed to auto-generate personalized deck:', err);
+        console.error('Failed to create personalized deck:', err);
       } finally {
         setIsGeneratingStarterDeck(false);
       }

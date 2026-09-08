@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Loader2, BookOpen, AlertCircle, Wand2, Check } from 'lucide-react';
+import { Sparkles, Loader2, BookOpen, AlertCircle, Wand2, Check, Zap } from 'lucide-react';
 import { Deck, Flashcard, EnglishLevel, UserPreferences } from '../types';
+import { getCuratedFallbackCards } from '../data/curatedVocabLibrary';
 
 interface GenerateDeckSectionProps {
   existingWords: string[];
@@ -47,6 +48,68 @@ export const GenerateDeckSection: React.FC<GenerateDeckSectionProps> = ({
     }
   }, [userPreferences]);
 
+  const createDeckFromData = (
+    data: { topicTitle?: string; level?: string; cards?: Partial<Flashcard>[] },
+    topicName: string,
+    isFallback = false
+  ) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const deckId = `deck-${Date.now()}`;
+
+    const newDeck: Deck = {
+      id: deckId,
+      title: data.topicTitle || topicName,
+      topic: topicName,
+      level: data.level || level,
+      createdAt: new Date().toISOString(),
+      cardCount: data.cards?.length || 0,
+      isDaily: true,
+      dateStr: todayStr,
+    };
+
+    const newCards: Flashcard[] = (data.cards || []).map(
+      (c: Partial<Flashcard>, index: number) => ({
+        id: `card-${deckId}-${index}`,
+        word: c.word || '',
+        phonetic: c.phonetic || '',
+        partOfSpeech: c.partOfSpeech || 'word',
+        vietnameseMeaning: c.vietnameseMeaning || '',
+        exampleSentence: c.exampleSentence || '',
+        exampleTranslation: c.exampleTranslation || '',
+        memoryTip: c.memoryTip || '',
+        collocations: c.collocations || [],
+        deckId,
+        dateAdded: todayStr,
+        reviewCount: 0,
+        masteryLevel: 'new' as const,
+      })
+    );
+
+    onDeckCreated(newDeck, newCards);
+    if (isFallback) {
+      setSuccessMsg(
+        `Đã tạo bộ ${newCards.length} thẻ từ chất lượng cao (từ thư viện chuẩn)! Bạn có thể học ngay.`
+      );
+    } else {
+      setSuccessMsg(`Đã tạo thành công ${newCards.length} thẻ từ mới với Gemini!`);
+    }
+  };
+
+  const handleGenerateInstant = () => {
+    const activeTopic =
+      customTopic.trim() ||
+      TOPIC_PRESETS.find((p) => p.id === selectedPreset)?.topic ||
+      'Giao tiếp hàng ngày';
+
+    const fallbackData = getCuratedFallbackCards(
+      level,
+      activeTopic,
+      cardCount,
+      existingWords
+    );
+    createDeckFromData(fallbackData, activeTopic, true);
+  };
+
   const handleGenerate = async () => {
     setLoading(true);
     setError(null);
@@ -58,9 +121,13 @@ export const GenerateDeckSection: React.FC<GenerateDeckSectionProps> = ({
       'Giao tiếp hàng ngày';
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 14000);
+
       const response = await fetch('/api/generate-cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           topic: activeTopic,
           level,
@@ -69,57 +136,24 @@ export const GenerateDeckSection: React.FC<GenerateDeckSectionProps> = ({
         }),
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || 'Lỗi khi gọi Gemini tạo thẻ');
+        throw new Error('Hệ thống AI bận, đang chuyển sang kho từ vựng chuẩn.');
       }
 
       const data = await response.json();
-      const todayStr = new Date().toISOString().split('T')[0];
-      const deckId = `deck-${Date.now()}`;
-
-      const newDeck: Deck = {
-        id: deckId,
-        title: data.topicTitle || activeTopic,
-        topic: activeTopic,
-        level: data.level || level,
-        createdAt: new Date().toISOString(),
-        cardCount: data.cards?.length || 0,
-        isDaily: true,
-        dateStr: todayStr,
-      };
-
-      const newCards: Flashcard[] = (data.cards || []).map(
-        (c: Partial<Flashcard>, index: number) => ({
-          id: `card-${deckId}-${index}`,
-          word: c.word || '',
-          phonetic: c.phonetic || '',
-          partOfSpeech: c.partOfSpeech || 'word',
-          vietnameseMeaning: c.vietnameseMeaning || '',
-          exampleSentence: c.exampleSentence || '',
-          exampleTranslation: c.exampleTranslation || '',
-          memoryTip: c.memoryTip || '',
-          collocations: c.collocations || [],
-          deckId,
-          dateAdded: todayStr,
-          reviewCount: 0,
-          masteryLevel: 'new' as const,
-        })
-      );
-
-      onDeckCreated(newDeck, newCards);
-      if (data.isCuratedFallback) {
-        setSuccessMsg(`Đã tạo bộ ${newCards.length} thẻ từ chất lượng cao (từ thư viện chuẩn trong khi AI đang tải)!`);
-      } else {
-        setSuccessMsg(`Đã tạo thành công ${newCards.length} thẻ từ mới với Gemini!`);
-      }
+      createDeckFromData(data, activeTopic, Boolean(data.isCuratedFallback));
     } catch (err: unknown) {
-      console.error(err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Hệ thống AI đang tiếp nhận lượng truy cập cao, vui lòng thử lại sau ít giây.'
+      console.warn('AI call interrupted, activating client curated library fallback:', err);
+      // Seamlessly generate cards so user never encounters an error!
+      const fallbackData = getCuratedFallbackCards(
+        level,
+        activeTopic,
+        cardCount,
+        existingWords
       );
+      createDeckFromData(fallbackData, activeTopic, true);
     } finally {
       setLoading(false);
     }
@@ -263,25 +297,37 @@ export const GenerateDeckSection: React.FC<GenerateDeckSectionProps> = ({
         </div>
       )}
 
-      {/* Generate Action Button */}
-      <button
-        type="button"
-        disabled={loading}
-        onClick={handleGenerate}
-        className="w-full py-3.5 px-4 rounded-2xl bg-[#8FA189] hover:bg-[#7D8F77] disabled:opacity-60 text-white font-bold text-sm flex items-center justify-center space-x-2 shadow-lg shadow-[#8FA189]/25 active:scale-98 transition-all"
-      >
-        {loading ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Gemini AI đang soạn thẻ bài học...</span>
-          </>
-        ) : (
-          <>
-            <Wand2 className="w-4 h-4" />
-            <span>Tạo bộ thẻ với Gemini AI</span>
-          </>
-        )}
-      </button>
+      {/* Generate Action Buttons */}
+      <div className="space-y-2 pt-1">
+        <button
+          type="button"
+          disabled={loading}
+          onClick={handleGenerate}
+          className="w-full py-3.5 px-4 rounded-2xl bg-[#8FA189] hover:bg-[#7D8F77] disabled:opacity-60 text-white font-bold text-sm flex items-center justify-center space-x-2 shadow-lg shadow-[#8FA189]/25 active:scale-98 transition-all"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Gemini AI đang soạn thẻ bài học...</span>
+            </>
+          ) : (
+            <>
+              <Wand2 className="w-4 h-4" />
+              <span>Tạo bộ thẻ với Gemini AI</span>
+            </>
+          )}
+        </button>
+
+        <button
+          type="button"
+          disabled={loading}
+          onClick={handleGenerateInstant}
+          className="w-full py-2.5 px-4 rounded-xl border border-[#E0DBCF] bg-white hover:bg-[#FAF9F6] text-[#5C574F] font-semibold text-xs flex items-center justify-center space-x-1.5 transition-all shadow-2xs"
+        >
+          <Zap className="w-3.5 h-3.5 text-[#C27D63]" />
+          <span>Tạo ngay từ kho từ chuẩn (Tức thì / Không cần chờ AI)</span>
+        </button>
+      </div>
     </div>
   );
 };
