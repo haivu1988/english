@@ -15,6 +15,7 @@ interface CloudAccountModalProps {
   isSyncing: boolean;
   lastSyncedAt: Date | null;
   onManualSync: () => Promise<void>;
+  onSignOut?: () => Promise<void> | void;
   onOpenPreferences?: () => void;
 }
 
@@ -29,6 +30,7 @@ export const CloudAccountModal: React.FC<CloudAccountModalProps> = ({
   isSyncing,
   lastSyncedAt,
   onManualSync,
+  onSignOut,
   onOpenPreferences,
 }) => {
   if (!isOpen) return null;
@@ -65,6 +67,7 @@ export const CloudAccountModal: React.FC<CloudAccountModalProps> = ({
             isSyncing={isSyncing}
             lastSyncedAt={lastSyncedAt}
             onManualSync={onManualSync}
+            onSignOut={onSignOut}
             onOpenPreferences={() => {
               onClose();
               if (onOpenPreferences) onOpenPreferences();

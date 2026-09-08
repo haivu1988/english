@@ -24,7 +24,8 @@ import {
 import {
   auth,
   onAuthStateChanged,
-  signInAnonymously,
+  signOut,
+  getRedirectResult,
   User,
 } from './lib/firebase';
 import {
@@ -63,6 +64,17 @@ export default function App() {
 
   // 1. Listen for Auth Changes & initialize session
   useEffect(() => {
+    // Check for redirect sign-in result (especially important for mobile browsers)
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          setUser(result.user);
+        }
+      })
+      .catch((err) => {
+        console.warn('Redirect sign-in notice:', err);
+      });
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
@@ -102,15 +114,29 @@ export default function App() {
           setIsSyncing(false);
         }
       } else {
-        // Automatically create anonymous user session for seamless cloud sync
-        signInAnonymously(auth).catch((err) => {
-          console.warn('Anonymous auth note:', err);
-        });
+        // Explicitly clear user session on logout
+        setUser(null);
+        setIsSyncing(false);
+        setLastSyncedAt(null);
+        isInitialSyncDone.current = false;
       }
     });
 
     return () => unsubscribe();
   }, []);
+
+  // Explicit logout handler
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.warn('Sign out notice:', err);
+    }
+    setUser(null);
+    setIsSyncing(false);
+    setLastSyncedAt(null);
+    isInitialSyncDone.current = false;
+  };
 
   // 2. Sync to localStorage
   useEffect(() => {
@@ -412,6 +438,7 @@ export default function App() {
               isSyncing={isSyncing}
               lastSyncedAt={lastSyncedAt}
               onManualSync={handleManualSync}
+              onSignOut={handleSignOut}
               onOpenPreferences={() => setIsOnboardingOpen(true)}
             />
           </main>
@@ -447,6 +474,7 @@ export default function App() {
           isSyncing={isSyncing}
           lastSyncedAt={lastSyncedAt}
           onManualSync={handleManualSync}
+          onSignOut={handleSignOut}
           onOpenPreferences={() => {
             setIsCloudModalOpen(false);
             setIsOnboardingOpen(true);

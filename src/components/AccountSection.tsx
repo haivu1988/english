@@ -24,11 +24,15 @@ import {
   Sliders,
   Flame,
   Layers,
+  Smartphone,
+  ExternalLink,
 } from 'lucide-react';
 import {
   auth,
   googleProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
@@ -93,6 +97,7 @@ interface AccountSectionProps {
   isSyncing: boolean;
   lastSyncedAt: Date | null;
   onManualSync: () => Promise<void>;
+  onSignOut?: () => Promise<void> | void;
   onOpenPreferences?: () => void;
 }
 
@@ -105,8 +110,14 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
   isSyncing,
   lastSyncedAt,
   onManualSync,
+  onSignOut,
   onOpenPreferences,
 }) => {
+  // Mobile / Environment Detection
+  const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
+  const isInAppBrowser = typeof navigator !== 'undefined' && /FBAN|FBAV|Instagram|Line|MicroMessenger|Zalo/i.test(navigator.userAgent);
+
   // Auth Form State
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [email, setEmail] = useState('');
@@ -150,7 +161,7 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
   // Format Firebase Auth Errors to Vietnamese
   const getFriendlyAuthError = (err: unknown): string => {
     if (!(err instanceof Error)) return 'Đã xảy ra lỗi không xác định.';
-    const msg = err.message;
+    const msg = err.message || '';
     if (msg.includes('auth/invalid-email')) return 'Định dạng email không hợp lệ.';
     if (msg.includes('auth/user-not-found')) return 'Không tìm thấy tài khoản với email này.';
     if (msg.includes('auth/wrong-password') || msg.includes('auth/invalid-credential')) {
@@ -165,27 +176,66 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
     if (msg.includes('auth/requires-recent-login')) {
       return 'Bảo mật: Bạn cần nhập mật khẩu hiện tại hoặc đăng nhập lại trước khi đổi mật khẩu.';
     }
+    if (msg.includes('auth/popup-blocked')) {
+      return 'Trình duyệt trên điện thoại đã chặn cửa sổ Popup. Bạn hãy nhấn nút "Đăng nhập Google (Chuyển hướng trang)" bên dưới để đăng nhập trực tiếp.';
+    }
     if (msg.includes('auth/popup-closed-by-user')) {
-      return 'Bạn đã đóng cửa sổ đăng nhập Google.';
+      return 'Cửa sổ đăng nhập Google đã bị đóng. Bạn hãy thử lại hoặc chọn nút "Chuyển hướng trang" bên dưới.';
+    }
+    if (msg.includes('auth/cancelled-popup-request')) {
+      return 'Thao tác mở cửa sổ đã được làm mới. Vui lòng nhấn thử lại.';
+    }
+    if (msg.includes('auth/unauthorized-domain')) {
+      return 'Tên miền web hiện tại chưa được cấp quyền trong Firebase Auth. Bạn có thể sử dụng Đăng ký / Đăng nhập bằng Email ngay bên dưới để học và lưu trữ dữ liệu bình thường.';
+    }
+    if (msg.includes('auth/network-request-failed')) {
+      return 'Lỗi kết nối mạng: Vui lòng kiểm tra Wifi/4G trên điện thoại.';
     }
     if (msg.includes('auth/too-many-requests')) {
       return 'Quá nhiều lần thử thất bại. Vui lòng đợi trong giây lát.';
     }
     if (msg.includes('auth/operation-not-allowed')) {
-      return 'Đăng nhập Email chưa được bật trong Firebase. Vui lòng sử dụng Đăng nhập bằng Google.';
+      return 'Phương thức này chưa được kích hoạt. Vui lòng sử dụng Đăng nhập bằng Google.';
     }
     return msg;
   };
 
-  // Google Sign In
-  const handleGoogleSignIn = async () => {
+  // Google Sign In (Popup or Direct Redirect)
+  const handleGoogleSignIn = async (useRedirect = false) => {
     setAuthLoading(true);
     setAuthError(null);
+    setAuthSuccess(null);
+
+    // If explicit redirect requested or required for mobile
+    if (useRedirect) {
+      try {
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      } catch (err) {
+        setAuthError(getFriendlyAuthError(err));
+        setAuthLoading(false);
+        return;
+      }
+    }
+
+    // Default: try popup
     try {
       await signInWithPopup(auth, googleProvider);
       await onManualSync();
-    } catch (err) {
-      setAuthError(getFriendlyAuthError(err));
+    } catch (err: unknown) {
+      const errorObj = err as { code?: string; message?: string };
+      const errCode = errorObj?.code || '';
+      const errMsg = errorObj?.message || '';
+
+      if (
+        errCode === 'auth/popup-blocked' ||
+        errMsg.includes('popup-blocked') ||
+        (isMobile && !isInIframe && (errCode === 'auth/popup-closed-by-user' || errMsg.includes('popup-closed-by-user')))
+      ) {
+        setAuthError('Cửa sổ đăng nhập Google bị trình duyệt điện thoại chặn. Vui lòng nhấn nút "Đăng nhập Google (Chuyển hướng trang)" ngay bên dưới.');
+      } else {
+        setAuthError(getFriendlyAuthError(err));
+      }
     } finally {
       setAuthLoading(false);
     }
@@ -259,11 +309,24 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
 
   // Sign out
   const handleSignOut = async () => {
+    setAuthLoading(true);
+    setAuthError(null);
+    setAuthSuccess(null);
     try {
       await signOut(auth);
-      setAuthSuccess('Đã đăng xuất thành công.');
+      if (onSignOut) {
+        await onSignOut();
+      }
+      setAuthSuccess('Đã đăng xuất tài khoản thành công!');
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+      setDisplayName('');
     } catch (err) {
       console.error('Sign out error:', err);
+      setAuthError('Không thể đăng xuất. Vui lòng thử lại.');
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -409,36 +472,93 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
             </p>
           </div>
 
-          {/* Google Quick Sign-In */}
-          <button
-            onClick={handleGoogleSignIn}
-            disabled={authLoading}
-            className="w-full py-3 px-4 rounded-2xl bg-white border border-[#E0DBCF] hover:border-[#8FA189] hover:bg-[#FAF9F6] text-[#3D3934] text-xs font-bold flex items-center justify-center space-x-2.5 shadow-xs transition-all disabled:opacity-50 active:scale-[0.99]"
-          >
-            {authLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-[#8FA189]" />
-            ) : (
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                />
-              </svg>
-            )}
-            <span>Đăng nhập nhanh với Google</span>
-          </button>
+          {/* Prominent Global Alert for Auth Status / Errors */}
+          {authError && (
+            <div className="p-3.5 rounded-2xl bg-[#FBF2EE] border border-[#F2D7CD] text-[#C27D63] text-xs flex items-start space-x-2.5 animate-in fade-in">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span className="leading-relaxed">{authError}</span>
+            </div>
+          )}
+
+          {authSuccess && (
+            <div className="p-3.5 rounded-2xl bg-[#EAEFE8] border border-[#D6E0D3] text-[#4E6746] text-xs flex items-center space-x-2.5 animate-in fade-in">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span className="leading-relaxed">{authSuccess}</span>
+            </div>
+          )}
+
+          {/* Notice when opened inside in-app browser (Zalo/Facebook) */}
+          {isInAppBrowser && (
+            <div className="p-3 rounded-2xl bg-[#FFF8E7] border border-[#F0E2BA] text-[#7A5B10] text-xs flex items-start space-x-2.5">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#B8871E]" />
+              <div className="space-y-1">
+                <p className="font-bold">Đang mở trong trình duyệt ứng dụng (Zalo/Facebook)</p>
+                <p className="text-[11px] leading-relaxed">
+                  Google thường hạn chế mở cửa sổ đăng nhập trong app. Bạn hãy nhấn vào nút <strong>⋮</strong> ở góc màn hình và chọn <strong>"Mở bằng trình duyệt"</strong> (Safari/Chrome), hoặc dùng hình thức Đăng nhập Email bên dưới.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Notice when inside an iframe */}
+          {isInIframe && (
+            <div className="p-2.5 rounded-2xl bg-[#F5F2ED] border border-[#E0DBCF] text-[11px] text-[#5C574F] flex items-center justify-between">
+              <span className="truncate mr-2">Khung xem trước ứng dụng</span>
+              <button
+                type="button"
+                onClick={() => window.open(window.location.href, '_blank')}
+                className="px-2.5 py-1 rounded-lg bg-white border border-[#D0CABE] text-[#3D3934] font-semibold text-[11px] flex items-center space-x-1.5 shrink-0 hover:bg-[#FAF9F6] shadow-2xs"
+              >
+                <ExternalLink className="w-3 h-3 text-[#8FA189]" />
+                <span>Mở tab mới trên điện thoại</span>
+              </button>
+            </div>
+          )}
+
+          {/* Google Sign-In Actions */}
+          <div className="space-y-2">
+            {/* Primary Google Quick Sign-In (Popup) */}
+            <button
+              onClick={() => handleGoogleSignIn(false)}
+              disabled={authLoading}
+              className="w-full py-3 px-4 rounded-2xl bg-white border border-[#E0DBCF] hover:border-[#8FA189] hover:bg-[#FAF9F6] text-[#3D3934] text-xs font-bold flex items-center justify-center space-x-2.5 shadow-xs transition-all disabled:opacity-50 active:scale-[0.99]"
+            >
+              {authLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin text-[#8FA189]" />
+              ) : (
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+              )}
+              <span>Đăng nhập nhanh với Google</span>
+            </button>
+
+            {/* Mobile-optimized redirect option */}
+            <button
+              onClick={() => handleGoogleSignIn(true)}
+              disabled={authLoading}
+              className="w-full py-2.5 px-3 rounded-2xl bg-[#FAF9F6] border border-[#D6E0D3] hover:bg-[#EAEFE8] hover:border-[#8FA189] text-[#4E6746] text-xs font-semibold flex items-center justify-center space-x-2 transition-all disabled:opacity-50 active:scale-[0.99]"
+              title="Dành cho điện thoại nếu bị chặn popup"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-[#8FA189]" />
+              <span>Đăng nhập Google (Chuyển hướng trang - Dành cho điện thoại)</span>
+            </button>
+          </div>
 
           {/* Divider */}
           <div className="flex items-center space-x-3">
@@ -845,17 +965,32 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
               </button>
             )}
 
+            {/* Global Error/Success in Logged-in State */}
+            {authError && (
+              <div className="p-3 rounded-xl bg-[#FBF2EE] border border-[#F2D7CD] text-[#C27D63] text-xs flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{authError}</span>
+              </div>
+            )}
+
             {/* Sign Out Button */}
             <button
               onClick={handleSignOut}
-              className="w-full p-2.5 rounded-xl bg-white hover:bg-[#FBF2EE] border border-[#E0DBCF] hover:border-[#F2D7CD] text-left flex items-center justify-between text-[#8A8479] hover:text-[#C27D63] transition-colors"
+              disabled={authLoading}
+              className="w-full p-2.5 rounded-xl bg-white hover:bg-[#FBF2EE] border border-[#E0DBCF] hover:border-[#F2D7CD] text-left flex items-center justify-between text-[#8A8479] hover:text-[#C27D63] transition-colors disabled:opacity-50 active:scale-[0.99]"
             >
               <div className="flex items-center space-x-2.5">
                 <div className="w-7 h-7 rounded-lg bg-[#FAF9F6] text-[#8A8479] flex items-center justify-center">
-                  <LogOut className="w-3.5 h-3.5" />
+                  {authLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#C27D63]" />
+                  ) : (
+                    <LogOut className="w-3.5 h-3.5 text-[#C27D63]" />
+                  )}
                 </div>
                 <div>
-                  <div className="text-xs font-bold">Đăng xuất tài khoản</div>
+                  <div className="text-xs font-bold text-[#C27D63]">
+                    {authLoading ? 'Đang đăng xuất...' : 'Đăng xuất tài khoản'}
+                  </div>
                   <div className="text-[10px] text-[#8A8479]">
                     Đăng xuất khỏi thiết bị này an toàn
                   </div>
