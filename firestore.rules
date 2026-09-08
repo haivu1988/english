@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global catch-all default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /decks/{deckId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /cards/{cardId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /progress/{progressId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /preferences/{prefId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /profile/{profileId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}

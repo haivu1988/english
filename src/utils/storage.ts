@@ -1,11 +1,42 @@
-import { Deck, Flashcard, UserProgress } from '../types';
+import { Deck, Flashcard, UserProgress, UserPreferences } from '../types';
 import { initialCards, initialDeck } from '../data/starterCards';
 
 const STORAGE_KEYS = {
   CARDS: 'eng_flashcards_cards_v1',
   DECKS: 'eng_flashcards_decks_v1',
   PROGRESS: 'eng_flashcards_progress_v1',
+  PREFERENCES: 'eng_flashcards_preferences_v1',
 };
+
+export const DEFAULT_PREFERENCES: UserPreferences = {
+  level: 'B1-B2',
+  topics: ['work', 'daily'],
+  dailyGoal: 6,
+  isOnboarded: false,
+};
+
+export function loadUserPreferences(): UserPreferences {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.PREFERENCES);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.level) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error('Error loading preferences from storage', e);
+  }
+  return DEFAULT_PREFERENCES;
+}
+
+export function saveUserPreferences(prefs: UserPreferences) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.PREFERENCES, JSON.stringify(prefs));
+  } catch (e) {
+    console.error('Error saving user preferences', e);
+  }
+}
 
 export function getTodayDateString(): string {
   const now = new Date();

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, Loader2, BookOpen, AlertCircle, Wand2, Check } from 'lucide-react';
-import { Deck, Flashcard } from '../types';
+import { Deck, Flashcard, EnglishLevel, UserPreferences } from '../types';
 
 interface GenerateDeckSectionProps {
   existingWords: string[];
   onDeckCreated: (newDeck: Deck, newCards: Flashcard[]) => void;
+  userPreferences?: UserPreferences;
 }
 
 const TOPIC_PRESETS = [
@@ -20,14 +21,31 @@ const TOPIC_PRESETS = [
 export const GenerateDeckSection: React.FC<GenerateDeckSectionProps> = ({
   existingWords,
   onDeckCreated,
+  userPreferences,
 }) => {
-  const [selectedPreset, setSelectedPreset] = useState<string>('daily');
+  const [selectedPreset, setSelectedPreset] = useState<string>(() => {
+    if (userPreferences?.topics && userPreferences.topics.length > 0) {
+      const match = TOPIC_PRESETS.find((p) => userPreferences.topics.includes(p.id));
+      if (match) return match.id;
+    }
+    return 'daily';
+  });
   const [customTopic, setCustomTopic] = useState('');
-  const [level, setLevel] = useState<'A1-A2' | 'B1-B2' | 'C1-C2'>('B1-B2');
-  const [cardCount, setCardCount] = useState<number>(6);
+  const [level, setLevel] = useState<EnglishLevel | string>(userPreferences?.level || 'B1-B2');
+  const [cardCount, setCardCount] = useState<number>(userPreferences?.dailyGoal || 6);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Sync state if user preferences change
+  useEffect(() => {
+    if (userPreferences?.level) {
+      setLevel(userPreferences.level);
+    }
+    if (userPreferences?.dailyGoal) {
+      setCardCount(userPreferences.dailyGoal);
+    }
+  }, [userPreferences]);
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -90,10 +108,18 @@ export const GenerateDeckSection: React.FC<GenerateDeckSectionProps> = ({
       );
 
       onDeckCreated(newDeck, newCards);
-      setSuccessMsg(`Đã tạo thành công ${newCards.length} thẻ từ mới với Gemini!`);
+      if (data.isCuratedFallback) {
+        setSuccessMsg(`Đã tạo bộ ${newCards.length} thẻ từ chất lượng cao (từ thư viện chuẩn trong khi AI đang tải)!`);
+      } else {
+        setSuccessMsg(`Đã tạo thành công ${newCards.length} thẻ từ mới với Gemini!`);
+      }
     } catch (err: unknown) {
       console.error(err);
-      setError(err instanceof Error ? err.message : 'Lỗi tạo thẻ từ vựng');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Hệ thống AI đang tiếp nhận lượng truy cập cao, vui lòng thử lại sau ít giây.'
+      );
     } finally {
       setLoading(false);
     }
@@ -175,6 +201,9 @@ export const GenerateDeckSection: React.FC<GenerateDeckSectionProps> = ({
               { id: 'A1-A2', title: 'A1-A2', sub: 'Cơ bản' },
               { id: 'B1-B2', title: 'B1-B2', sub: 'Trung cấp' },
               { id: 'C1-C2', title: 'C1-C2', sub: 'Nâng cao' },
+              { id: 'IELTS', title: 'IELTS', sub: 'Band 7+' },
+              { id: 'TOEIC', title: 'TOEIC', sub: '750-900' },
+              { id: 'Business', title: 'Business', sub: 'Đi làm' },
             ] as const
           ).map((lvl) => (
             <button

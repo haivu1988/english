@@ -18,11 +18,20 @@ export interface Flashcard {
   nextReviewDate?: string;
 }
 
+export type EnglishLevel = 'A1-A2' | 'B1-B2' | 'C1-C2' | 'IELTS' | 'TOEIC' | 'Business';
+
+export interface UserPreferences {
+  level: EnglishLevel;
+  topics: string[];
+  dailyGoal: number;
+  isOnboarded: boolean;
+}
+
 export interface Deck {
   id: string;
   title: string;
   topic: string;
-  level: 'A1-A2' | 'B1-B2' | 'C1-C2';
+  level: EnglishLevel | string;
   createdAt: string;
   cardCount: number;
   isDaily: boolean;

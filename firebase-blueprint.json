@@ -1,0 +1,100 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile and account settings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "createdAt"]
+    },
+    "Deck": {
+      "title": "Deck",
+      "description": "Flashcard deck collection belonging to a user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "color": { "type": "string" }
+      },
+      "required": ["id", "title", "createdAt"]
+    },
+    "Flashcard": {
+      "title": "Flashcard",
+      "description": "Vocabulary flashcard item with spaced repetition tracking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "deckId": { "type": "string" },
+        "word": { "type": "string" },
+        "phonetic": { "type": "string" },
+        "partOfSpeech": { "type": "string" },
+        "vietnameseMeaning": { "type": "string" },
+        "exampleSentence": { "type": "string" },
+        "exampleTranslation": { "type": "string" },
+        "memoryTip": { "type": "string" },
+        "collocations": { "type": "array" },
+        "masteryLevel": { "type": "string", "enum": ["new", "learning", "review", "mastered"] },
+        "reviewCount": { "type": "number" },
+        "lastReviewed": { "type": "string" }
+      },
+      "required": ["id", "deckId", "word", "vietnameseMeaning", "masteryLevel"]
+    },
+    "UserProgress": {
+      "title": "UserProgress",
+      "description": "Daily learning streak and review counters for the user",
+      "type": "object",
+      "properties": {
+        "dailyStreak": { "type": "number" },
+        "lastActiveDate": { "type": "string" },
+        "totalCardsReviewed": { "type": "number" },
+        "todayCardsReviewed": { "type": "number" },
+        "todayDateStr": { "type": "string" },
+        "dailyGoal": { "type": "number" }
+      },
+      "required": ["dailyStreak", "lastActiveDate", "totalCardsReviewed", "todayCardsReviewed"]
+    },
+    "UserPreferences": {
+      "title": "UserPreferences",
+      "description": "User learning level, target topics, and daily goal preferences",
+      "type": "object",
+      "properties": {
+        "level": { "type": "string" },
+        "topics": { "type": "array" },
+        "dailyGoal": { "type": "number" },
+        "isOnboarded": { "type": "boolean" }
+      },
+      "required": ["level", "topics", "dailyGoal"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile data"
+    },
+    "/users/{userId}/decks/{deckId}": {
+      "schema": "Deck",
+      "description": "User vocabulary decks"
+    },
+    "/users/{userId}/cards/{cardId}": {
+      "schema": "Flashcard",
+      "description": "User vocabulary flashcards"
+    },
+    "/users/{userId}/progress/{progressId}": {
+      "schema": "UserProgress",
+      "description": "User daily study streak and review statistics"
+    },
+    "/users/{userId}/preferences/{prefId}": {
+      "schema": "UserPreferences",
+      "description": "User learning goal and topic preferences"
+    }
+  }
+}
